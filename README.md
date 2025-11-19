@@ -1,40 +1,47 @@
-# Refactoring Summary
+# Spring Boot Refactoring
 
-This document describes the refactoring performed on the original Movie Rental code.  
-The goal was to improve structure, readability, flexibility and remove duplicate logic.
+This project is a refactored version of the classic Movie Rental system, now implemented with **Spring Boot**.  
+The goal was to modernize the architecture, make it RESTful, and separate concerns according to Spring best practices.
 
-## Changes
+## Key Changes and Refactoring Done
 
-1. **Moved price calculation logic out of `Customer`**  
-   Previously, `Customer` handled pricing with a long `switch` statement.  
-   Now this logic is encapsulated inside dedicated strategy classes.
+1. **Migrated the project to Spring Boot**
+    - Added Spring Boot parent, starter dependencies, and Maven plugin for easy running.
+    - Project now runs as a REST API service.
 
-2. **Removed the `switch` statement based on movie type**  
-   Pricing is now handled through polymorphism instead of conditional logic.
+2. **Introduced layered architecture**
+    - **Controller** layer handles REST endpoints (`CustomerController`).
+    - **Service** layer contains business logic (`RentalService`).
+    - **Model** layer contains data classes (`Customer`, `Movie`, `Rental`, `MovieType`).
+    - **Strategy** layer handles pricing logic (`Price`, `RegularPrice`, `NewReleasePrice`, `ChildrensPrice`, `PriceFactory`).
+    - **DTOs** (`RentalRequest`, `StatementResponse`) are used for request/response objects.
 
-3. **Introduced the Strategy Pattern for pricing**  
-   A new abstract class `Price` defines the pricing interface,  
-   while `RegularPrice`, `NewReleasePrice`, and `ChildrensPrice` implement specific rules.
+3. **Separated concerns and refactored logic**
+    - Business logic (calculating charges, frequent renter points) moved from `Customer`/Controller to `RentalService`.
+    - `Customer` class is now a simple data container.
+    - Pricing logic is fully encapsulated in `Price` strategies.
 
-4. **Added the `Price` class**  
-   This class is responsible for:
-    - calculating rental charges (`getCharge`)
-    - awarding frequent renter points (`getFrequentRenterPoints`)
-    - providing correct strategy via `Price.of()` factory method
+4. **Applied Strategy Pattern**
+    - Pricing rules for different movie types are encapsulated in separate classes.
+    - Added `PriceFactory` to create the correct strategy based on movie type.
+    - Removed all `switch` statements and conditional logic from service/controller.
 
-5. **Updated the `Movie` class to use a `Price` object instead of enum-only logic**  
-   `MovieType` remains, but now it simply selects the correct pricing strategy on creation.
+5. **REST API implemented**
+    - POST `/api/rentals/statement` endpoint accepts customer name and list of rentals.
+    - Returns total amount and frequent renter points as JSON.
 
-6. **Simplified and cleaned the `Customer` class**  
-   It now only aggregates results and builds the statement output,  
-   without performing business calculations.
+6. **DTOs introduced for API requests/responses**
+    - `RentalRequest` represents individual rentals in requests.
+    - `StatementResponse` contains aggregated result of the statement.
+    - Optional: can extend to `StatementRequest` to wrap customer + rentals in one object.
 
-7. **Improved extensibility of the system**  
-   Adding a new movie type now only requires creating a new subclass of `Price`  
-   and registering it in the factory method.
+7. **Updated `pom.xml` for Spring Boot**
+    - Added `spring-boot-starter-web` for REST.
+    - Added `spring-boot-starter-test` (JUnit 5) for testing.
 
-8. **Replaced string concatenation with `StringBuilder`**  
-   This optimizes performance in the `statement()` method.
+8. **Rewrote and tested unit tests**
+    - Existing JUnit tests were updated for Spring Boot structure.
+    - All tests run successfully using `mvn test` or IDE run configuration.
+    - Test results:
 
-9. **Moved charge and points logic closer to the data**  
-   These methods now live in `Movie` and `Price`, improving encapsulation and cohesion.
+   ![Test Results](src/main/resources/images/tests-spring.png)

@@ -1,8 +1,12 @@
 package example;
 
+import example.model.Customer;
+import example.model.Movie;
+import example.model.Rental;
+
 import java.util.List;
 
-import static example.Movie.MovieType.*;
+import static example.model.MovieType.*;
 
 public class Main {
     public static final Movie REMBO = new Movie("Rembo", REGULAR);
@@ -14,8 +18,8 @@ public class Main {
                 new Rental(LOTR, 4),
                 new Rental(HARRY_POTTER, 5));
 
-        String statement = new Customer("John Doe", rentals).statement();
+        //String statement = new Customer("John Doe", rentals).statement();
 
-        System.out.println(statement);
+        //System.out.println(statement);
     }
 }

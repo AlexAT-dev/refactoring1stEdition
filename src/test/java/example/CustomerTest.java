@@ -1,139 +1,160 @@
 package example;
 
+import example.dto.RentalRequest;
+import example.dto.StatementResponse;
+import example.model.MovieType;
+import example.service.RentalService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-import static example.Movie.MovieType.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CustomerTest {
+@SpringBootTest
+class CustomerTest {
 
-    private Movie REMBO;
-    private Movie LOTR;
-    private Movie HARRY_POTTER;
+    @Autowired
+    private RentalService rentalService;
+
+    private String remboTitle;
+    private MovieType remboType;
+
+    private String lotrTitle;
+    private MovieType lotrType;
+
+    private String hpTitle;
+    private MovieType hpType;
 
     @BeforeEach
     void setUp() {
-        REMBO = new Movie("Rembo", REGULAR);
-        LOTR = new Movie("Lord of the Rings", NEW_RELEASE);
-        HARRY_POTTER = new Movie("Harry Potter", CHILDRENS);
+        remboTitle = "Rembo";
+        remboType = MovieType.REGULAR;
+
+        lotrTitle = "Lord of the Rings";
+        lotrType = MovieType.NEW_RELEASE;
+
+        hpTitle = "Harry Potter";
+        hpType = MovieType.CHILDRENS;
     }
 
     @Test
+    @DisplayName("Statement with mixed rentals")
     void whenStatementRequestedWithMixedRentals_thenReturnsFormattedStatement() {
-
-        List<Rental> rentals = List.of(
-                new Rental(REMBO, 1),
-                new Rental(LOTR, 4),
-                new Rental(HARRY_POTTER, 5)
+        List<RentalRequest> requests = List.of(
+                new RentalRequest(remboTitle, remboType, 1),
+                new RentalRequest(lotrTitle, lotrType, 4),
+                new RentalRequest(hpTitle, hpType, 5)
         );
 
-        Customer customer = new Customer("Alex AT", rentals);
+        StatementResponse res = rentalService.generateStatement("Alex AT", requests);
 
-        String expected = "Rental Record for Alex AT\n" +
-                "\tRembo\t2.0\n" +
-                "\tLord of the Rings\t12.0\n" +
-                "\tHarry Potter\t4.5\n" +
-                "Amount owed is 18.5\n" +
-                "You earned 4 frequent renter points";
-        assertEquals(expected, customer.statement());
+        assertEquals("Alex AT", res.customerName());
+        assertEquals(18.5, res.totalAmount(), 1e-9);
+        assertEquals(4, res.points());
     }
 
     @Test
+    @DisplayName("Long regular rental")
     void whenRegularMovieRentedManyDays_thenChargeIsCalculatedCorrectly() {
-        Customer c = new Customer("LongRent", List.of(new Rental(REMBO, 10)));
+        StatementResponse res = rentalService.generateStatement("LongRent",
+                List.of(new RentalRequest(remboTitle, remboType, 10)));
 
-        String expected = "Rental Record for LongRent\n" +
-                "\tRembo\t14.0\n" +
-                "Amount owed is 14.0\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        assertEquals("LongRent", res.customerName());
+        assertEquals(14.0, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("Empty rentals")
     void whenNoRentals_thenStatementShowsZeroAmounts() {
-        Customer c = new Customer("Empty", List.of());
-        String expected = "Rental Record for Empty\n" +
-                "Amount owed is 0.0\n" +
-                "You earned 0 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("Empty", List.of());
+
+        assertEquals("Empty", res.customerName());
+        assertEquals(0.0, res.totalAmount(), 1e-9);
+        assertEquals(0, res.points());
     }
 
     @Test
+    @DisplayName("Regular movie 2 days")
     void whenRegularMovieRentedTwoDays_thenChargeIs2_0() {
-        Customer c = new Customer("Reg", List.of(new Rental(REMBO, 2)));
-        String expected = "Rental Record for Reg\n" +
-                "\tRembo\t2.0\n" +
-                "Amount owed is 2.0\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("Reg",
+                List.of(new RentalRequest(remboTitle, remboType, 2)));
+
+        assertEquals("Reg", res.customerName());
+        assertEquals(2.0, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("Regular movie 3 days")
     void whenRegularMovieRentedThreeDays_thenChargeIs3_5() {
-        Customer c = new Customer("Reg3", List.of(new Rental(REMBO, 3)));
-        String expected = "Rental Record for Reg3\n" +
-                "\tRembo\t3.5\n" +
-                "Amount owed is 3.5\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("Reg3",
+                List.of(new RentalRequest(remboTitle, remboType, 3)));
+
+        assertEquals("Reg3", res.customerName());
+        assertEquals(3.5, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("New release 1 day")
     void whenNewReleaseRentedOneDay_thenChargeIs3_0() {
-        Customer c = new Customer("NR1", List.of(new Rental(LOTR, 1)));
-        String expected = "Rental Record for NR1\n" +
-                "\tLord of the Rings\t3.0\n" +
-                "Amount owed is 3.0\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("NR1",
+                List.of(new RentalRequest(lotrTitle, lotrType, 1)));
+
+        assertEquals("NR1", res.customerName());
+        assertEquals(3.0, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("New release 2 days bonus points")
     void whenNewReleaseRentedTwoDays_thenGivesBonusPoint() {
-        Customer c = new Customer("NR2", List.of(new Rental(LOTR, 2)));
-        String expected = "Rental Record for NR2\n" +
-                "\tLord of the Rings\t6.0\n" +
-                "Amount owed is 6.0\n" +
-                "You earned 2 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("NR2",
+                List.of(new RentalRequest(lotrTitle, lotrType, 2)));
+
+        assertEquals("NR2", res.customerName());
+        assertEquals(6.0, res.totalAmount(), 1e-9);
+        assertEquals(2, res.points());
     }
 
     @Test
+    @DisplayName("Children's movie 2 days")
     void whenChildrensMovieRentedTwoDays_thenChargeIs1_5() {
-        Customer c = new Customer("Child2", List.of(new Rental(HARRY_POTTER, 2)));
-        String expected = "Rental Record for Child2\n" +
-                "\tHarry Potter\t1.5\n" +
-                "Amount owed is 1.5\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("Child2",
+                List.of(new RentalRequest(hpTitle, hpType, 2)));
+
+        assertEquals("Child2", res.customerName());
+        assertEquals(1.5, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("Children's movie 4 days")
     void whenChildrensMovieRentedFourDays_thenChargeIs3_0() {
-        Customer c = new Customer("Child4", List.of(new Rental(HARRY_POTTER, 4)));
-        String expected = "Rental Record for Child4\n" +
-                "\tHarry Potter\t3.0\n" +
-                "Amount owed is 3.0\n" +
-                "You earned 1 frequent renter points";
-        assertEquals(expected, c.statement());
+        StatementResponse res = rentalService.generateStatement("Child4",
+                List.of(new RentalRequest(hpTitle, hpType, 4)));
+
+        assertEquals("Child4", res.customerName());
+        assertEquals(3.0, res.totalAmount(), 1e-9);
+        assertEquals(1, res.points());
     }
 
     @Test
+    @DisplayName("Totals for multiple rentals")
     void whenMultipleRentals_thenTotalsAndPointsCalculated() {
-        Customer c = new Customer("Multi", List.of(
-                new Rental(REMBO, 3),         // 3.5
-                new Rental(LOTR, 2),          // 6.0 (2 points)
-                new Rental(HARRY_POTTER, 4)   // 3.0
+        StatementResponse res = rentalService.generateStatement("Multi", List.of(
+                new RentalRequest(remboTitle, remboType, 3),
+                new RentalRequest(lotrTitle, lotrType, 2),
+                new RentalRequest(hpTitle, hpType, 4)
         ));
-        String expected = "Rental Record for Multi\n" +
-                "\tRembo\t3.5\n" +
-                "\tLord of the Rings\t6.0\n" +
-                "\tHarry Potter\t3.0\n" +
-                "Amount owed is 12.5\n" +
-                "You earned 4 frequent renter points";
-        assertEquals(expected, c.statement());
+
+        assertEquals("Multi", res.customerName());
+        assertEquals(12.5, res.totalAmount(), 1e-9);
+        assertEquals(4, res.points());
     }
 }
