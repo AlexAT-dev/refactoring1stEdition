@@ -38,3 +38,7 @@ The goal was to improve structure, readability, flexibility and remove duplicate
 
 9. **Moved charge and points logic closer to the data**  
    These methods now live in `Movie` and `Price`, improving encapsulation and cohesion.
+
+# Test results:
+
+![Test Results](src/main/resources/images/test-results.png)
